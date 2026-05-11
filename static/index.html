@@ -3,94 +3,147 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kindle Screenshot Automation</title>
+<title>Kindle Auto Capture</title>
 <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-<div class="container">
-  <h1>📚 Kindle Screenshot Automation</h1>
 
-  <!-- Mode tabs -->
-  <div class="tabs">
-    <button class="tab active" data-mode="android">Android (ADB)</button>
-    <button class="tab" data-mode="desktop">Desktop (PC)</button>
+<aside id="sidebar">
+  <div class="sidebar-header">
+    <span class="logo">📚 AutoCapture</span>
   </div>
+  <nav>
+    <button class="nav-btn active" data-view="new-job">＋ 新しいジョブ</button>
+    <button class="nav-btn" data-view="jobs">ジョブ一覧</button>
+    <button class="nav-btn" data-view="settings">設定</button>
+  </nav>
+  <div id="sidebar-job-list"></div>
+</aside>
 
-  <!-- Android panel -->
-  <div id="panel-android" class="panel">
-    <div class="form-group">
-      <label>接続デバイス</label>
-      <div class="row">
-        <select id="device-select"><option value="">読み込み中...</option></select>
-        <button id="btn-refresh-devices" class="btn-sm">更新</button>
-        <button id="btn-screen-info" class="btn-sm">解像度確認</button>
+<main id="main">
+
+  <!-- ── New Job View ────────────────────────── -->
+  <div id="view-new-job" class="view">
+    <h1>新しいキャプチャジョブ</h1>
+
+    <div class="card">
+      <h2>モード選択</h2>
+      <div class="tabs">
+        <button class="tab active" data-mode="android">Android (ADB)</button>
+        <button class="tab" data-mode="desktop">Desktop (PC)</button>
+      </div>
+
+      <div id="panel-android" class="panel">
+        <div class="form-row">
+          <div class="form-group">
+            <label>接続デバイス</label>
+            <div class="row">
+              <select id="device-select"><option value="">読み込み中...</option></select>
+              <button id="btn-refresh-devices" class="btn-sm">更新</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>　</label>
+            <button id="btn-screen-info" class="btn-sm" style="margin-top:4px">解像度確認</button>
+          </div>
+        </div>
+        <div id="screen-info-box" class="info-box hidden"></div>
+        <div class="form-group">
+          <label>プレビュー（クリックで拡大）</label>
+          <div class="row">
+            <button id="btn-preview" class="btn-sm">スクショ確認</button>
+          </div>
+          <img id="preview-img" src="" alt="" style="display:none;max-height:220px;margin-top:8px;cursor:pointer;border:1px solid #ddd;border-radius:4px">
+        </div>
+      </div>
+
+      <div id="panel-desktop" class="panel hidden">
+        <p class="info">PC版 Kindleアプリを前面に表示した状態で開始してください。<br>右矢印キーでページめくりします。</p>
       </div>
     </div>
-    <div id="screen-info-box" class="info-box hidden"></div>
-    <div class="form-group">
-      <label>プレビュー（クリックで拡大）</label>
-      <div id="preview-wrap">
-        <img id="preview-img" src="" alt="プレビューなし">
-        <button id="btn-preview" class="btn-sm">スクショ確認</button>
+
+    <div class="card">
+      <h2>キャプチャ設定</h2>
+      <div class="form-row">
+        <div class="form-group">
+          <label>本のタイトル</label>
+          <input type="text" id="job-name" value="無題の本" placeholder="本のタイトル">
+        </div>
+        <div class="form-group">
+          <label>ページ数（0=全ページ）</label>
+          <input type="number" id="total-pages" value="0" min="0">
+        </div>
       </div>
-    </div>
-  </div>
-
-  <!-- Desktop panel -->
-  <div id="panel-desktop" class="panel hidden">
-    <p class="info">PC版 Kindle アプリを前面に表示した状態で開始してください。<br>
-    右矢印キーでページめくりします。スクリーンショットは PNG（無圧縮）で保存されます。</p>
-  </div>
-
-  <!-- Common settings -->
-  <div class="settings-box">
-    <h2>設定</h2>
-    <div class="form-row">
+      <div class="form-row">
+        <div class="form-group checkbox-group">
+          <label><input type="checkbox" id="auto-pdf" checked> 完了後に PDF を自動生成</label>
+        </div>
+        <div class="form-group checkbox-group">
+          <label><input type="checkbox" id="auto-ocr"> 完了後に OCR を自動実行</label>
+        </div>
+      </div>
       <div class="form-group">
-        <label>ページ間隔（秒）</label>
-        <input type="number" id="interval" value="3" min="0.5" step="0.5">
+        <label>Claude API キー（OCR用・省略可）</label>
+        <input type="password" id="api-key" placeholder="sk-ant-... （未入力でもキャプチャ・PDF は動作します）">
       </div>
+    </div>
+
+    <div class="controls">
+      <button id="btn-start-job" class="btn btn-primary btn-lg">▶ キャプチャ開始</button>
+    </div>
+
+    <!-- Chat importer -->
+    <div class="card">
+      <h2>💬 チャット履歴から設定を取り込む</h2>
+      <p class="info">Claude や ChatGPT の会話を貼り付けると設定を自動抽出します。</p>
+      <textarea id="chat-text" rows="5" placeholder="会話を貼り付けてください…"></textarea>
+      <button id="btn-parse" class="btn btn-secondary" style="margin-top:8px">設定を抽出</button>
+      <pre id="parse-result" class="hidden"></pre>
+    </div>
+  </div>
+
+  <!-- ── Jobs View ───────────────────────────── -->
+  <div id="view-jobs" class="view hidden">
+    <h1>ジョブ一覧</h1>
+    <div id="job-list-container"></div>
+  </div>
+
+  <!-- ── Settings View ──────────────────────── -->
+  <div id="view-settings" class="view hidden">
+    <h1>設定</h1>
+    <div class="card">
+      <h2>Claude API キー</h2>
+      <p class="info">OCR（文字起こし）に使います。設定しなくてもキャプチャ・PDF生成は動作します。</p>
       <div class="form-group">
-        <label>ページ数（0=無制限）</label>
-        <input type="number" id="total-pages" value="0" min="0">
+        <input type="password" id="global-api-key" placeholder="sk-ant-...">
       </div>
+      <button id="btn-save-settings" class="btn btn-secondary">保存</button>
     </div>
-    <div class="form-group">
-      <label>保存フォルダ</label>
-      <input type="text" id="save-dir" value="screenshots">
-    </div>
-    <p class="info">💡 スクリーンショットはすべて <strong>PNG（ロスレス）</strong> で保存されます。タブレット・PCの大画面でも劣化しません。</p>
   </div>
 
-  <!-- Controls -->
-  <div class="controls">
-    <button id="btn-start" class="btn btn-primary">▶ 開始</button>
-    <button id="btn-stop" class="btn btn-danger" disabled>■ 停止</button>
-    <span id="status-badge" class="badge badge-idle">停止中</span>
-    <span id="page-counter" class="page-counter hidden">0 ページ取得済み</span>
-  </div>
+</main>
 
-  <!-- Chat prompt importer -->
-  <div class="card">
-    <h2>💬 チャット履歴から設定を取り込む</h2>
-    <p class="info">Claude や ChatGPT の会話をここに貼り付けると、設定を自動で読み取ります。</p>
-    <div class="form-group">
-      <label>Claude API キー（省略可）</label>
-      <input type="password" id="api-key" placeholder="sk-ant-... （未入力の場合はキーワード解析）">
-    </div>
-    <textarea id="chat-text" rows="6" placeholder="会話を貼り付けてください…"></textarea>
-    <button id="btn-parse" class="btn btn-secondary">設定を抽出</button>
-    <pre id="parse-result" class="hidden"></pre>
+<!-- Job detail panel (right drawer) -->
+<div id="job-detail" class="job-detail hidden">
+  <div class="job-detail-header">
+    <span id="detail-title">ジョブ詳細</span>
+    <button id="detail-close">✕</button>
   </div>
-
-  <!-- Screenshot gallery -->
-  <div class="card">
-    <h2>🖼 保存済みスクリーンショット</h2>
-    <div class="row" style="margin-bottom:10px">
-      <button id="btn-refresh-gallery" class="btn-sm">更新</button>
-      <span id="gallery-count" class="info" style="margin:0"></span>
-    </div>
-    <div id="gallery"></div>
+  <div id="detail-status-row" class="detail-status-row"></div>
+  <div class="detail-actions">
+    <button id="detail-stop"    class="btn btn-danger btn-sm hidden">■ 停止</button>
+    <button id="detail-pdf"     class="btn btn-secondary btn-sm hidden">PDF生成</button>
+    <button id="detail-download" class="btn btn-primary btn-sm hidden">⬇ PDFダウンロード</button>
+    <button id="detail-ocr"     class="btn btn-secondary btn-sm hidden">OCR実行</button>
+  </div>
+  <div class="detail-section">
+    <strong>ログ</strong>
+    <pre id="detail-log"></pre>
+  </div>
+  <div class="detail-section">
+    <strong>スクリーンショット</strong>
+    <button id="detail-refresh-gallery" class="btn-sm">更新</button>
+    <div id="detail-gallery"></div>
   </div>
 </div>
 
