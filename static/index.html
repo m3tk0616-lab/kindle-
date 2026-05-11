@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kindle Screenshot Automation</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="container">
+  <h1>📚 Kindle Screenshot Automation</h1>
+
+  <!-- Mode tabs -->
+  <div class="tabs">
+    <button class="tab active" data-mode="android">Android (ADB)</button>
+    <button class="tab" data-mode="desktop">Desktop (PC)</button>
+  </div>
+
+  <!-- Android panel -->
+  <div id="panel-android" class="panel">
+    <div class="form-group">
+      <label>接続デバイス</label>
+      <div class="row">
+        <select id="device-select"><option value="">読み込み中...</option></select>
+        <button id="btn-refresh-devices" class="btn-sm">更新</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>プレビュー</label>
+      <div id="preview-wrap">
+        <img id="preview-img" src="" alt="プレビューなし">
+        <button id="btn-preview" class="btn-sm">スクショ確認</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Desktop panel -->
+  <div id="panel-desktop" class="panel hidden">
+    <p class="info">PC版 Kindle アプリを前面に表示した状態で開始してください。<br>
+    右矢印キーでページめくりします。</p>
+  </div>
+
+  <!-- Common settings -->
+  <div class="settings-box">
+    <h2>設定</h2>
+    <div class="form-row">
+      <div class="form-group">
+        <label>ページ間隔（秒）</label>
+        <input type="number" id="interval" value="3" min="0.5" step="0.5">
+      </div>
+      <div class="form-group">
+        <label>ページ数（0=無制限）</label>
+        <input type="number" id="total-pages" value="0" min="0">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>保存フォルダ</label>
+      <input type="text" id="save-dir" value="screenshots">
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <button id="btn-start" class="btn btn-primary">▶ 開始</button>
+    <button id="btn-stop" class="btn btn-danger" disabled>■ 停止</button>
+    <span id="status-badge" class="badge badge-idle">停止中</span>
+  </div>
+
+  <!-- Chat prompt importer -->
+  <div class="card">
+    <h2>💬 チャット履歴から設定を取り込む</h2>
+    <p class="info">Claude や ChatGPT の会話をここに貼り付けると、設定を自動で読み取ります。</p>
+    <div class="form-group">
+      <label>Claude API キー（省略可）</label>
+      <input type="password" id="api-key" placeholder="sk-ant-... （未入力の場合はキーワード解析）">
+    </div>
+    <textarea id="chat-text" rows="6" placeholder="会話を貼り付けてください…"></textarea>
+    <button id="btn-parse" class="btn btn-secondary">設定を抽出</button>
+    <pre id="parse-result" class="hidden"></pre>
+  </div>
+
+  <!-- Screenshot gallery -->
+  <div class="card">
+    <h2>🖼 保存済みスクリーンショット</h2>
+    <button id="btn-refresh-gallery" class="btn-sm">更新</button>
+    <div id="gallery"></div>
+  </div>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
