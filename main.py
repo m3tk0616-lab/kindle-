@@ -12,7 +12,7 @@ import os
 import time
 from pathlib import Path
 
-from fastapi import FastAPI, BackgroundTasks, HTTPException
+from fastapi import FastAPI, BackgroundTasks, HTTPException, Request
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -71,7 +71,11 @@ async def root():
 
 @app.get("/api/devices")
 async def list_devices():
-    return {"devices": adb.list_devices()}
+    try:
+        devices = adb.list_devices()
+        return {"devices": devices}
+    except Exception as e:
+        return {"devices": [], "warning": str(e)}
 
 @app.get("/api/screen-info")
 async def screen_info(device_serial: str = ""):
@@ -79,7 +83,7 @@ async def screen_info(device_serial: str = ""):
         w, h = adb.get_screen_size(device_serial)
         return {"width": w, "height": h, "megapixels": round(w * h / 1_000_000, 1)}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/api/screenshot/preview")
 async def preview_screenshot(device_serial: str = ""):
@@ -173,12 +177,10 @@ async def list_screenshots(job_id: str):
 # ── SSE progress stream ─────────────────────────────────────────
 
 @app.get("/api/events")
-async def sse_events(request):
+async def sse_events(request: Request):
     async def generator():
-        # Send current job states immediately on connect
         for job in jobs.list():
             yield {"data": json.dumps(job.as_dict())}
-        # Then stream live updates
         async for data in jobs.subscribe():
             if await request.is_disconnected():
                 break
@@ -225,7 +227,7 @@ async def _run_job(job_id: str):
     try:
         # Capture first page
         first_path = str(save_dir / f"page_{job.page_count + 1:04d}.png")
-        await asyncio.get_event_loop().run_in_executor(None, _capture, first_path)
+        await asyncio.get_running_loop().run_in_executor(None, _capture, first_path)
         jobs.increment_page(job_id)
         jobs.log(job_id, f"ページ 1 保存")
 
@@ -237,10 +239,10 @@ async def _run_job(job_id: str):
             last_path = str(save_dir / f"page_{job.page_count:04d}.png")
 
             # Trigger page turn
-            await asyncio.get_event_loop().run_in_executor(None, _next_page)
+            await asyncio.get_running_loop().run_in_executor(None, _next_page)
 
             # Wait for screen to actually change
-            changed = await asyncio.get_event_loop().run_in_executor(
+            changed = await asyncio.get_running_loop().run_in_executor(
                 None, waiter.wait_for_change, last_path, tmp_path
             )
 
@@ -261,7 +263,7 @@ async def _run_job(job_id: str):
         if job.auto_pdf and jobs.get(job_id).page_count > 0:
             jobs.log(job_id, "PDF を生成中...")
             try:
-                pdf_path = await asyncio.get_event_loop().run_in_executor(
+                pdf_path = await asyncio.get_running_loop().run_in_executor(
                     None, build_pdf, save_dir
                 )
                 jobs.set_pdf(job_id, pdf_path)

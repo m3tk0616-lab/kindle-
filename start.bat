@@ -24,8 +24,8 @@ if not exist ".deps_installed" (
     echo. > .deps_installed
 )
 
-:: Open browser after short delay
-start "" timeout /t 2 /nobreak >nul & start http://localhost:8000
+:: Open browser after 3 second delay (runs in background while server starts)
+start /b cmd /c "timeout /t 3 /nobreak >nul && start http://localhost:8000"
 
 :: Start server
 echo.
