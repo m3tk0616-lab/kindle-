@@ -30,6 +30,7 @@ parser = PromptParser()
 
 _running = False
 _task: asyncio.Task | None = None
+_page_count = 0
 
 
 # ── Request models ──────────────────────────────────────────────
@@ -100,7 +101,16 @@ async def stop_automation():
 
 @app.get("/api/status")
 async def get_status():
-    return {"running": _running}
+    return {"running": _running, "page_count": _page_count}
+
+@app.get("/api/screen-info")
+async def screen_info(device_serial: str = ""):
+    """Return native screen resolution of the connected Android device."""
+    try:
+        w, h = adb.get_screen_size(device_serial)
+        return {"width": w, "height": h, "megapixels": round(w * h / 1_000_000, 1)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/tap")
 async def manual_tap(req: TapRequest):
@@ -141,15 +151,15 @@ async def parse_prompt(req: ParseRequest):
 # ── Background loop ─────────────────────────────────────────────
 
 async def _run_loop(req: StartRequest, save_dir: Path):
-    global _running
-    count = 0
+    global _running, _page_count
+    _page_count = 0
     try:
         while _running:
-            if req.total_pages and count >= req.total_pages:
+            if req.total_pages and _page_count >= req.total_pages:
                 break
 
             ts = int(time.time() * 1000)
-            filename = str(save_dir / f"page_{ts}.png")
+            filename = str(save_dir / f"page_{_page_count + 1:04d}_{ts}.png")
 
             if req.mode == "android":
                 adb.capture(req.device_serial, filename)
@@ -158,7 +168,7 @@ async def _run_loop(req: StartRequest, save_dir: Path):
                 desktop.capture(filename)
                 desktop.press_right()
 
-            count += 1
+            _page_count += 1
             await asyncio.sleep(req.interval)
     finally:
         _running = False

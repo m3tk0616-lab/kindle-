@@ -23,10 +23,12 @@
       <div class="row">
         <select id="device-select"><option value="">読み込み中...</option></select>
         <button id="btn-refresh-devices" class="btn-sm">更新</button>
+        <button id="btn-screen-info" class="btn-sm">解像度確認</button>
       </div>
     </div>
+    <div id="screen-info-box" class="info-box hidden"></div>
     <div class="form-group">
-      <label>プレビュー</label>
+      <label>プレビュー（クリックで拡大）</label>
       <div id="preview-wrap">
         <img id="preview-img" src="" alt="プレビューなし">
         <button id="btn-preview" class="btn-sm">スクショ確認</button>
@@ -37,7 +39,7 @@
   <!-- Desktop panel -->
   <div id="panel-desktop" class="panel hidden">
     <p class="info">PC版 Kindle アプリを前面に表示した状態で開始してください。<br>
-    右矢印キーでページめくりします。</p>
+    右矢印キーでページめくりします。スクリーンショットは PNG（無圧縮）で保存されます。</p>
   </div>
 
   <!-- Common settings -->
@@ -57,6 +59,7 @@
       <label>保存フォルダ</label>
       <input type="text" id="save-dir" value="screenshots">
     </div>
+    <p class="info">💡 スクリーンショットはすべて <strong>PNG（ロスレス）</strong> で保存されます。タブレット・PCの大画面でも劣化しません。</p>
   </div>
 
   <!-- Controls -->
@@ -64,6 +67,7 @@
     <button id="btn-start" class="btn btn-primary">▶ 開始</button>
     <button id="btn-stop" class="btn btn-danger" disabled>■ 停止</button>
     <span id="status-badge" class="badge badge-idle">停止中</span>
+    <span id="page-counter" class="page-counter hidden">0 ページ取得済み</span>
   </div>
 
   <!-- Chat prompt importer -->
@@ -82,9 +86,21 @@
   <!-- Screenshot gallery -->
   <div class="card">
     <h2>🖼 保存済みスクリーンショット</h2>
-    <button id="btn-refresh-gallery" class="btn-sm">更新</button>
+    <div class="row" style="margin-bottom:10px">
+      <button id="btn-refresh-gallery" class="btn-sm">更新</button>
+      <span id="gallery-count" class="info" style="margin:0"></span>
+    </div>
     <div id="gallery"></div>
   </div>
+</div>
+
+<!-- Fullscreen viewer -->
+<div id="viewer-overlay" class="viewer-overlay hidden">
+  <button id="viewer-close" class="viewer-close">✕</button>
+  <button id="viewer-prev" class="viewer-nav viewer-nav-left">‹</button>
+  <img id="viewer-img" src="" alt="">
+  <div id="viewer-caption" class="viewer-caption"></div>
+  <button id="viewer-next" class="viewer-nav viewer-nav-right">›</button>
 </div>
 
 <script src="/static/app.js"></script>
