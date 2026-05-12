@@ -6,3 +6,7 @@ jobs/
 screenshots/
 *.pdf
 .env
+bin/
+dist/
+build/
+*.spec

@@ -1,6 +1,7 @@
 """Android ADB controller — screenshot & page-turn via adb shell."""
 
 import subprocess
+import sys
 from pathlib import Path
 
 
@@ -8,20 +9,34 @@ class AdbNotFoundError(RuntimeError):
     pass
 
 
+def _adb_bin() -> str:
+    """
+    bin/adb.exe (setup.bat でダウンロード済み) を優先して使う。
+    なければ PATH 上の adb を使う。
+    """
+    # exe と同階層か、その親の bin/ を探す
+    for base in (Path(sys.executable).parent, Path(__file__).parent.parent):
+        candidate = base / "bin" / "adb.exe"
+        if candidate.exists():
+            return str(candidate)
+    return "adb"
+
+
 class AdbController:
     _size_cache: dict[str, tuple[int, int]] = {}
+    _adb = _adb_bin()
 
     def _run(self, args: list[str], check=True) -> subprocess.CompletedProcess:
         try:
             return subprocess.run(
-                ["adb"] + args,
+                [self._adb] + args,
                 capture_output=True,
                 text=True,
                 check=check,
             )
         except FileNotFoundError:
             raise AdbNotFoundError(
-                "adb コマンドが見つかりません。Android SDK Platform-Tools をインストールしてください。"
+                "adb が見つかりません。setup.bat を実行してください。"
             )
 
     def _serial_prefix(self, serial: str) -> list[str]:
