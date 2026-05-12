@@ -47,14 +47,21 @@ class AdbController:
                 devices.append(info)
         return devices
 
-    def capture(self, serial: str, save_path: str) -> str:
-        """Take a lossless PNG screenshot at native resolution and pull to save_path."""
+    def capture(self, serial: str, save_path: str,
+                crop: tuple[int, int, int, int] | None = None) -> str:
+        """
+        Take a lossless PNG screenshot.
+        crop=(x1,y1,x2,y2) in device pixels crops the image after capture.
+        """
         from PIL import Image
         remote = "/data/local/tmp/_kindle_ss.png"
         prefix = self._serial_prefix(serial)
         self._run(prefix + ["shell", "screencap", "-p", remote])
         self._run(prefix + ["pull", remote, save_path])
         img = Image.open(save_path)
+        if crop:
+            x1, y1, x2, y2 = crop
+            img = img.crop((x1, y1, x2, y2))
         img.save(save_path, format="PNG", optimize=False, compress_level=1)
         return save_path
 

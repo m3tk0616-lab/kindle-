@@ -5,7 +5,7 @@ cd /d "%~dp0"
 echo ========================================
 echo   依存ライブラリをインストールしています...
 echo ========================================
-pip install Pillow imagehash img2pdf anthropic sse-starlette pyinstaller -q
+pip install Pillow imagehash img2pdf PyMuPDF anthropic sse-starlette pyinstaller -q
 if errorlevel 1 ( echo インストール失敗 & pause & exit /b 1 )
 
 echo.
@@ -18,6 +18,7 @@ pyinstaller --onefile --windowed --name "KindleAutoCapture" ^
   --hidden-import=PIL._tkinter_finder ^
   --hidden-import=imagehash ^
   --hidden-import=img2pdf ^
+  --hidden-import=fitz ^
   --hidden-import=anthropic ^
   --icon=static\icon-512.png ^
   app_gui.py
