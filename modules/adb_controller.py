@@ -24,7 +24,9 @@ def _adb_bin() -> str:
 
 class AdbController:
     _size_cache: dict[str, tuple[int, int]] = {}
-    _adb = _adb_bin()
+
+    def __init__(self):
+        self._adb = _adb_bin()
 
     def _run(self, args: list[str], check=True) -> subprocess.CompletedProcess:
         try:

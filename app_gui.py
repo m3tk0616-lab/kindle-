@@ -572,6 +572,16 @@ class App(tk.Tk):
     def _start(self):
         if self._running:
             return
+        # OCR が有効だが API キーが未設定の場合は警告
+        if self._auto_ocr.get() and not self._api_var.get().strip():
+            ok = messagebox.askyesno(
+                "OCR の API キーが未設定",
+                "OCR が有効ですが Claude API キーが未入力です。\n"
+                "このまま続行すると OCR はスキップされます。\n\n"
+                "続行しますか？"
+            )
+            if not ok:
+                return
         self._running   = True
         self._page_count = 0
         self._start_btn.configure(state="disabled")
@@ -644,18 +654,23 @@ class App(tk.Tk):
 
             # ── OCR (PDF生成の前に実行してテキスト埋め込み) ───────
             ocr_texts: dict[str, str] = {}
-            if auto_ocr and self._page_count > 0:
+            if auto_ocr and self._page_count > 0 and api_key.strip():
                 self._log_msg("OCR テキスト認識を開始…")
                 import asyncio
                 from modules.ocr_engine import OcrEngine
                 engine = OcrEngine(api_key)
                 png_files = sorted(Path(save_dir).glob("page_*.png"))
                 for i, png_path in enumerate(png_files):
-                    text = asyncio.run(engine.ocr_image(str(png_path)))
-                    ocr_texts[png_path.name] = text
+                    try:
+                        text = asyncio.run(engine.ocr_image(str(png_path)))
+                        ocr_texts[png_path.name] = text
+                    except Exception as e:
+                        self._log_msg(f"  OCR エラー ({png_path.name}): {e}")
                     if (i+1) % 5 == 0 or i+1 == len(png_files):
                         self._log_msg(f"  OCR {i+1}/{len(png_files)} 完了")
                 self._log_msg("OCR 完了 — PDF にテキストを埋め込みます")
+            elif auto_ocr and self._page_count > 0:
+                self._log_msg("OCR スキップ (API キー未設定)")
 
             # ── PDF 生成 ─────────────────────────────────────────
             if auto_pdf and self._page_count > 0:
