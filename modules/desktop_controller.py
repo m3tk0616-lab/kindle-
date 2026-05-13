@@ -3,55 +3,65 @@
 import platform
 import subprocess
 
-try:
-    import pyautogui
-    _PYAUTOGUI = True
-except Exception:
-    _PYAUTOGUI = False
-
-try:
-    from PIL import ImageGrab
-    _PIL = True
-except Exception:
-    _PIL = False
-
 
 class DesktopController:
     def capture(self, save_path: str) -> str:
         """Take a full-screen screenshot and save to save_path."""
-        if _PYAUTOGUI:
+        try:
+            import pyautogui
             img = pyautogui.screenshot()
             img.save(save_path)
-        elif _PIL:
+            return save_path
+        except Exception:
+            pass
+
+        try:
+            from PIL import ImageGrab
             img = ImageGrab.grab()
             img.save(save_path)
-        else:
-            # Linux fallback via scrot / gnome-screenshot
-            system = platform.system()
-            if system == "Linux":
+            return save_path
+        except Exception:
+            pass
+
+        # Linux headless fallback
+        if platform.system() == "Linux":
+            for cmd in [["scrot", save_path], ["gnome-screenshot", "-f", save_path]]:
                 try:
-                    subprocess.run(["scrot", save_path], check=True)
-                except FileNotFoundError:
-                    subprocess.run(["gnome-screenshot", "-f", save_path], check=True)
-            else:
-                raise RuntimeError("pyautogui not available and no fallback found")
-        return save_path
+                    subprocess.run(cmd, check=True, capture_output=True)
+                    return save_path
+                except (FileNotFoundError, subprocess.CalledProcessError):
+                    continue
+
+        raise RuntimeError(
+            "スクリーンショットが取得できません。pyautogui または scrot をインストールしてください。"
+        )
 
     def press_right(self):
         """Press the right-arrow key to advance the Kindle page."""
-        if _PYAUTOGUI:
+        try:
+            import pyautogui
             pyautogui.press("right")
-        else:
-            system = platform.system()
-            if system == "Linux":
-                subprocess.run(["xdotool", "key", "Right"], check=False)
-            else:
-                raise RuntimeError("pyautogui not available")
+            return
+        except Exception:
+            pass
+
+        if platform.system() == "Linux":
+            try:
+                subprocess.run(["xdotool", "key", "Right"], check=False, capture_output=True)
+                return
+            except FileNotFoundError:
+                pass
+
+        raise RuntimeError(
+            "キー入力が送れません。pyautogui または xdotool をインストールしてください。"
+        )
 
     def press_left(self):
-        if _PYAUTOGUI:
+        try:
+            import pyautogui
             pyautogui.press("left")
-        else:
-            system = platform.system()
-            if system == "Linux":
-                subprocess.run(["xdotool", "key", "Left"], check=False)
+            return
+        except Exception:
+            pass
+        if platform.system() == "Linux":
+            subprocess.run(["xdotool", "key", "Left"], check=False, capture_output=True)
