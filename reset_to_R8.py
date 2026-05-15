@@ -1,6 +1,6 @@
 import openpyxl
 from openpyxl.cell.cell import MergedCell
-from openpyxl.styles import Font, Alignment, PatternFill
+from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from copy import copy
 import datetime
 
@@ -238,6 +238,123 @@ def apply_iizume(ws):
 for ws_x in (ws1, ws2):
     clear_all_fills(ws_x)
     apply_iizume(ws_x)
+
+# ════════════════════════════════════════════
+# リーグ勝敗表 — スポーツ・クール系スタイル
+# ════════════════════════════════════════════
+def mk_fill(hex6):
+    return PatternFill(patternType="solid", fgColor=hex6)
+
+def mk_font(size=10, bold=False, color="1A252F", name="メイリオ"):
+    return Font(name=name, size=size, bold=bold, color=color)
+
+def mk_side(color="1B2631", style="thin"):
+    return Side(style=style, color=color)
+
+def mk_border(color="1B2631", style="thin"):
+    s = mk_side(color, style)
+    return Border(left=s, right=s, top=s, bottom=s)
+
+ALIGN_C = Alignment(horizontal="center", vertical="center")
+
+# Palette
+NAVY      = "0D1B2A"   # title background
+BLUE_H    = "1B4F72"   # header rows 4-5
+BLUE_T    = "2471A3"   # team label col A-D
+GOLD      = "FFD700"   # title text
+WHITE     = "FFFFFF"
+ROW_A     = "D6EAF8"   # team pair A win/loss row
+ROW_A2    = "EBF5FB"   # team pair A score row
+ROW_B     = "F0F4F8"   # team pair B win/loss row
+ROW_B2    = "F8FBFD"   # team pair B score row
+STATS_BG  = "D0E8F5"   # stats cols AL-AS
+GREY_ROW  = "F2F3F4"   # inactive team rows
+INACTIVE  = "D5D8DC"   # inactive text
+
+ws_r = wb["リーグ勝敗表"]
+
+# Row 1: Title — dark navy bg, gold bold text
+c = ws_r.cell(1, 1)
+c.fill = mk_fill(NAVY)
+c.font = Font(name="メイリオ", size=18, bold=True, color=GOLD)
+c.alignment = ALIGN_C
+ws_r.row_dimensions[1].height = 32
+
+# Rows 2-3: dark navy spacer band
+for r in (2, 3):
+    for col in range(1, 46):
+        cell = ws_r.cell(r, col)
+        if isinstance(cell, MergedCell):
+            continue
+        cell.fill = mk_fill(NAVY)
+ws_r.row_dimensions[2].height = 6
+ws_r.row_dimensions[3].height = 6
+
+# Rows 4-5: deep blue column headers
+for r in (4, 5):
+    for col in range(1, 46):
+        cell = ws_r.cell(r, col)
+        if isinstance(cell, MergedCell):
+            continue
+        cell.fill = mk_fill(BLUE_H)
+        cell.font = mk_font(size=11, bold=True, color=WHITE)
+        cell.alignment = ALIGN_C
+
+# Active team rows 6-17 (teams 1-6, 2 rows each)
+for team_idx in range(6):
+    r1 = 6 + team_idx * 2  # win/loss row
+    r2 = r1 + 1             # score row
+    bg1, bg2 = (ROW_A, ROW_A2) if team_idx % 2 == 0 else (ROW_B, ROW_B2)
+
+    for r, bg in [(r1, bg1), (r2, bg2)]:
+        for col in range(1, 46):
+            cell = ws_r.cell(r, col)
+            if isinstance(cell, MergedCell):
+                continue
+            if col <= 4:
+                cell.fill = mk_fill(BLUE_T)
+                cell.font = mk_font(size=10, bold=True, color=WHITE)
+            elif 38 <= col <= 45:
+                cell.fill = mk_fill(STATS_BG)
+                cell.font = mk_font(size=10, bold=(col == 41), color="1A252F")
+            else:
+                cell.fill = mk_fill(bg)
+                cell.font = mk_font(size=10, color="1A252F")
+            cell.alignment = ALIGN_C
+        # thin border on the whole row across cols 1-45
+        bdr = mk_border("B2BABB")
+        for col in range(1, 46):
+            cell = ws_r.cell(r, col)
+            if not isinstance(cell, MergedCell):
+                cell.border = bdr
+
+# Inactive rows 18-27: light grey
+for r in range(18, 28):
+    for col in range(1, 46):
+        cell = ws_r.cell(r, col)
+        if isinstance(cell, MergedCell):
+            continue
+        cell.fill = mk_fill(GREY_ROW)
+        cell.font = mk_font(size=9, color=INACTIVE)
+        cell.alignment = ALIGN_C
+
+# Bold border between header and data (below row 5)
+thick = Side(style="medium", color="0D1B2A")
+for col in range(1, 46):
+    cell = ws_r.cell(5, col)
+    if not isinstance(cell, MergedCell):
+        cell.border = Border(
+            left=mk_side("B2BABB"), right=mk_side("B2BABB"),
+            top=mk_side("B2BABB"), bottom=thick)
+
+# Stats header emphasis: bolder left border on AL col (38)
+for r in range(4, 28):
+    cell = ws_r.cell(r, 38)
+    if not isinstance(cell, MergedCell):
+        existing = cell.border
+        cell.border = Border(
+            left=Side(style="medium", color="0D1B2A"),
+            right=existing.right, top=existing.top, bottom=existing.bottom)
 
 wb.save(DST)
 print(f"Saved: {DST}")
