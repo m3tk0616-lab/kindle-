@@ -1,6 +1,6 @@
 import openpyxl
 from openpyxl.cell.cell import MergedCell
-from openpyxl.styles import Font, Alignment
+from openpyxl.styles import Font, Alignment, PatternFill
 from copy import copy
 import datetime
 
@@ -193,6 +193,44 @@ for ws_x in (ws1, ws2):
     # 審判列（F/L/R/X）を少し広げる
     for col_letter in ["F", "L", "R", "X"]:
         ws_x.column_dimensions[col_letter].width = 11
+
+# ════════════════════════════════════════════
+# 既存の網掛け(黄色)を除去 & 飯詰試合日に網掛け
+# ════════════════════════════════════════════
+NO_FILL = PatternFill(fill_type=None)
+IIZUME_FILL = PatternFill(patternType="lightTrellis",
+                          fgColor="D97706", bgColor="FFFFFF")
+
+# 飯詰(2)が試合に出る日 → 月別 (day, 月)
+iizume_days_by_month = {5: [28], 6: [3, 9, 23], 7: [2]}
+
+def clear_yellow(ws):
+    for row in ws.iter_rows(min_row=4, max_row=34, min_col=1, max_col=24):
+        for c in row:
+            if isinstance(c, MergedCell):
+                continue
+            try:
+                if c.fill and c.fill.fgColor and str(c.fill.fgColor.rgb) == "FFFFFF00":
+                    c.fill = NO_FILL
+            except Exception:
+                pass
+
+def apply_iizume(ws):
+    # 月ごとの全列範囲: 5月=A-F(1-6), 6月=G-L(7-12), 7月=M-R(13-18), 8月=S-X(19-24)
+    month_col_range = {5: (1, 6), 6: (7, 12), 7: (13, 18), 8: (19, 24)}
+    for month, days in iizume_days_by_month.items():
+        c1, c2 = month_col_range[month]
+        for day in days:
+            row = day + 3
+            for col in range(c1, c2 + 1):
+                cell = ws.cell(row, col)
+                if isinstance(cell, MergedCell):
+                    continue
+                cell.fill = IIZUME_FILL
+
+for ws_x in (ws1, ws2):
+    clear_yellow(ws_x)
+    apply_iizume(ws_x)
 
 wb.save(DST)
 print(f"Saved: {DST}")
