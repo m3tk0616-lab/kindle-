@@ -1,5 +1,7 @@
 import openpyxl
 from openpyxl.cell.cell import MergedCell
+from openpyxl.styles import Font, Alignment
+from copy import copy
 import datetime
 
 SRC = "/root/.claude/uploads/5a98ff47-aadd-49b8-9dad-a8d2f564f977/3ab50f35-__7________.xlsx"
@@ -142,6 +144,55 @@ for month, (ca, cb, cr) in match_cols.items():
 
 for (month, day), data in GAMES.items():
     write_match(ws2, day + 3, month, data)
+
+# ════════════════════════════════════════════
+# 文字切れ対策：横向き・縮小して全体表示・列幅調整
+# ════════════════════════════════════════════
+def shrink_match_cell(cell, sz=8):
+    if isinstance(cell, MergedCell):
+        return
+    f = cell.font
+    cell.font = Font(name=f.name or "メイリオ", size=sz,
+                     bold=f.bold, italic=f.italic, color=f.color)
+    a = cell.alignment
+    cell.alignment = Alignment(
+        horizontal=a.horizontal or "center",
+        vertical=a.vertical or "center",
+        shrink_to_fit=True,
+        wrap_text=False,
+    )
+
+# 各シートの対戦/審判セル全部に縮小フィット適用
+match_all_cols = []
+for ca, cb, cr in match_cols.values():
+    match_all_cols.extend([ca, cb, cr])
+
+for ws_x in (ws1, ws2):
+    # ページ設定：A4横、1ページに収める
+    ws_x.page_setup.orientation = "landscape"
+    ws_x.page_setup.paperSize = 9
+    ws_x.page_setup.fitToWidth = 1
+    ws_x.page_setup.fitToHeight = 1
+    ws_x.sheet_properties.pageSetUpPr.fitToPage = True
+    ws_x.page_margins.left = 0.3
+    ws_x.page_margins.right = 0.3
+    ws_x.page_margins.top = 0.4
+    ws_x.page_margins.bottom = 0.4
+
+    # 対戦・審判セルを小フォント＋縮小フィット
+    for row in range(4, 35):
+        for col in match_all_cols:
+            shrink_match_cell(ws_x.cell(row, col), sz=8)
+
+    # 細すぎる team A 列（C/I/O/U = 3/9/15/21）を広げる
+    for col_letter in ["C", "I", "O", "U"]:
+        ws_x.column_dimensions[col_letter].width = 8
+    # 区切り "ー" 列（D/J/P/V）は狭く
+    for col_letter in ["D", "J", "P", "V"]:
+        ws_x.column_dimensions[col_letter].width = 2.5
+    # 審判列（F/L/R/X）を少し広げる
+    for col_letter in ["F", "L", "R", "X"]:
+        ws_x.column_dimensions[col_letter].width = 11
 
 wb.save(DST)
 print(f"Saved: {DST}")
