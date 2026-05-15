@@ -22,6 +22,14 @@ def safe_set(ws, row, col, value):
 # ════════════════════════════════════════════
 ws = wb["リーグ勝敗表"]
 
+# タイトル追加 (A1:S1 を結合して題名)
+ws.merge_cells("A1:S1")
+title_cell = ws.cell(1, 1)
+title_cell.value = "令和8年 朝野球リーグ勝敗表"
+title_cell.font = Font(name="メイリオ", size=16, bold=True)
+title_cell.alignment = Alignment(horizontal="center", vertical="center")
+ws.row_dimensions[1].height = 25
+
 # 1) 入力スコアを全クリア (E列〜AK列, 数値のみ — 数式は触らない)
 for row in ws.iter_rows(min_row=6, max_row=27, min_col=5, max_col=37):
     for cell in row:
@@ -205,16 +213,14 @@ IIZUME_FILL = PatternFill(patternType="solid",
 # 飯詰(2)が試合に出る日 → 月別 (day, 月)
 iizume_days_by_month = {5: [28], 6: [3, 9, 23], 7: [2]}
 
-def clear_yellow(ws):
+def clear_all_fills(ws):
+    """データ域(rows 4-34, cols A-X)の全fillを除去"""
     for row in ws.iter_rows(min_row=4, max_row=34, min_col=1, max_col=24):
         for c in row:
             if isinstance(c, MergedCell):
                 continue
-            try:
-                if c.fill and c.fill.fgColor and str(c.fill.fgColor.rgb) == "FFFFFF00":
-                    c.fill = NO_FILL
-            except Exception:
-                pass
+            if c.fill and c.fill.patternType and c.fill.patternType != "none":
+                c.fill = NO_FILL
 
 def apply_iizume(ws):
     # 月ごとの全列範囲: 5月=A-F(1-6), 6月=G-L(7-12), 7月=M-R(13-18), 8月=S-X(19-24)
@@ -230,7 +236,7 @@ def apply_iizume(ws):
                 cell.fill = IIZUME_FILL
 
 for ws_x in (ws1, ws2):
-    clear_yellow(ws_x)
+    clear_all_fills(ws_x)
     apply_iizume(ws_x)
 
 wb.save(DST)
