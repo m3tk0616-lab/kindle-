@@ -198,8 +198,9 @@ for ws_x in (ws1, ws2):
 # 既存の網掛け(黄色)を除去 & 飯詰試合日に網掛け
 # ════════════════════════════════════════════
 NO_FILL = PatternFill(fill_type=None)
-IIZUME_FILL = PatternFill(patternType="lightTrellis",
-                          fgColor="D97706", bgColor="FFFFFF")
+# 元ファイルで使われていた黄色 FFFFFF00 を飯詰部分に流用
+IIZUME_FILL = PatternFill(patternType="solid",
+                          fgColor="FFFFFF00", bgColor="FFFFFF00")
 
 # 飯詰(2)が試合に出る日 → 月別 (day, 月)
 iizume_days_by_month = {5: [28], 6: [3, 9, 23], 7: [2]}
