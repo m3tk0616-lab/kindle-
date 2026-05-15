@@ -321,12 +321,6 @@ for team_idx in range(6):
                 cell.fill = mk_fill(bg)
                 cell.font = mk_font(size=10, color="1A252F")
             cell.alignment = ALIGN_C
-        # thin border on the whole row across cols 1-45
-        bdr = mk_border("B2BABB")
-        for col in range(1, 46):
-            cell = ws_r.cell(r, col)
-            if not isinstance(cell, MergedCell):
-                cell.border = bdr
 
 # Inactive rows 18-27: light grey
 for r in range(18, 28):
@@ -338,23 +332,30 @@ for r in range(18, 28):
         cell.font = mk_font(size=9, color=INACTIVE)
         cell.alignment = ALIGN_C
 
-# Bold border between header and data (below row 5)
-thick = Side(style="medium", color="0D1B2A")
-for col in range(1, 46):
-    cell = ws_r.cell(5, col)
-    if not isinstance(cell, MergedCell):
-        cell.border = Border(
-            left=mk_side("B2BABB"), right=mk_side("B2BABB"),
-            top=mk_side("B2BABB"), bottom=thick)
+# ── 罫線を一括で統一適用 ──────────────────────────
+# ルール:
+#   - 全セル(rows 4-27, cols 1-45): 細線 (gray)
+#   - 外枠 / ヘッダー下 / チームペア区切り / 統計列左: 太線 (navy)
 
-# Stats header emphasis: bolder left border on AL col (38)
+THIN = Side(style="thin",   color="B2BABB")
+MED  = Side(style="medium", color="0D1B2A")
+
+PAIR_BOTTOMS = {6 + i * 2 + 1 for i in range(6)}  # {7,9,11,13,15,17}
+HEADER_ROW = 5
+STATS_COL  = 38
+LAST_ROW   = 27
+LAST_COL   = 45
+
 for r in range(4, 28):
-    cell = ws_r.cell(r, 38)
-    if not isinstance(cell, MergedCell):
-        existing = cell.border
-        cell.border = Border(
-            left=Side(style="medium", color="0D1B2A"),
-            right=existing.right, top=existing.top, bottom=existing.bottom)
+    for col in range(1, 46):
+        cell = ws_r.cell(r, col)
+        if isinstance(cell, MergedCell):
+            continue
+        left   = MED if (col == 1 or col == STATS_COL) else THIN
+        right  = MED if col == LAST_COL else THIN
+        top    = MED if r == 4 else THIN
+        bottom = MED if (r == HEADER_ROW or r == LAST_ROW or r in PAIR_BOTTOMS) else THIN
+        cell.border = Border(left=left, right=right, top=top, bottom=bottom)
 
 wb.save(DST)
 print(f"Saved: {DST}")
