@@ -99,6 +99,20 @@ GAMES = {
     (7, 2): (2, 6, "3-4"),
 }
 
+LKP = "リーグ勝敗表!$AZ$6:$BA$11"
+
+def team_formula(n):
+    return f'=IFERROR(VLOOKUP({n},{LKP},2,0),"{n}")'
+
+def ref_formula(ref_str):
+    """'2-6' → VLOOKUP(2)&'-'&VLOOKUP(6)"""
+    parts = ref_str.split("-")
+    if len(parts) == 2:
+        a, b = parts
+        return (f'=IFERROR(VLOOKUP({a},{LKP},2,0),"{a}")'
+                f'&"-"&IFERROR(VLOOKUP({b},{LKP},2,0),"{b}")')
+    return ref_str
+
 def write_match(ws, row, month, data):
     ca, cb, cr = match_cols[month]
     sc = sep_cols[month]
@@ -109,9 +123,9 @@ def write_match(ws, row, month, data):
         safe_set(ws, row, cr, None)
     else:
         ta, tb, ref = data
-        safe_set(ws, row, ca, ta)
-        safe_set(ws, row, cb, tb)
-        safe_set(ws, row, cr, ref)
+        safe_set(ws, row, ca, team_formula(ta))
+        safe_set(ws, row, cb, team_formula(tb))
+        safe_set(ws, row, cr, ref_formula(ref))
 
 for (month, day), data in GAMES.items():
     write_match(ws1, day + 3, month, data)
