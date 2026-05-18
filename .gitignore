@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pyo
+.deps_installed
+jobs/
+screenshots/
+*.pdf
+.env
+bin/
+dist/
+build/
+*.spec
