@@ -240,121 +240,135 @@ for ws_x in (ws1, ws2):
     apply_iizume(ws_x)
 
 # ════════════════════════════════════════════
-# リーグ勝敗表 — スポーツ・クール系スタイル
+# リーグ勝敗表 — プロフェッショナルデザイン
 # ════════════════════════════════════════════
-def mk_fill(hex6):
-    return PatternFill(patternType="solid", fgColor=hex6)
 
-def mk_font(size=10, bold=False, color="1A252F", name="メイリオ"):
+def sf(h):
+    return PatternFill(patternType="solid", fgColor=h)
+
+def mf(size=10, bold=False, color="212121", name="メイリオ"):
     return Font(name=name, size=size, bold=bold, color=color)
 
-def mk_side(color="1B2631", style="thin"):
-    return Side(style=style, color=color)
+AC = Alignment(horizontal="center", vertical="center")
 
-def mk_border(color="1B2631", style="thin"):
-    s = mk_side(color, style)
-    return Border(left=s, right=s, top=s, bottom=s)
-
-ALIGN_C = Alignment(horizontal="center", vertical="center")
-
-# Palette
-NAVY      = "0D1B2A"   # title background
-BLUE_H    = "1B4F72"   # header rows 4-5
-BLUE_T    = "2471A3"   # team label col A-D
-GOLD      = "FFD700"   # title text
+# ─── カラーパレット ─────────────────────
+TITLE_BG  = "102A43"  # 深紺: タイトル
+HDR_BG    = "1565C0"  # スチールブルー: ヘッダー行4
+HDR_BG2   = "0D47A1"  # 濃ブルー: ヘッダー行5 (統計ラベル)
+TEAM_ODD  = "1A237E"  # 深インディゴ: 奇数チーム名
+TEAM_EVEN = "283593"  # やや薄インディゴ: 偶数チーム名
+WL_ODD    = "FFFFFF"  # 白: 奇数チーム勝敗行
+SC_ODD    = "F5F5F5"  # 薄グレー: 奇数チームスコア行
+WL_EVEN   = "EFF3FF"  # 薄青白: 偶数チーム勝敗行
+SC_EVEN   = "E8ECF8"  # 薄青: 偶数チームスコア行
+STATS_BG  = "E3F2FD"  # 薄水色: 集計ゾーン (AL-AR)
+RANK_BG   = "FFF9C4"  # 薄ゴールド: 順位ゾーン (AS)
+INACTIVE  = "EEEEEE"  # 非アクティブ行
 WHITE     = "FFFFFF"
-ROW_A     = "D6EAF8"   # team pair A win/loss row
-ROW_A2    = "EBF5FB"   # team pair A score row
-ROW_B     = "F0F4F8"   # team pair B win/loss row
-ROW_B2    = "F8FBFD"   # team pair B score row
-STATS_BG  = "D0E8F5"   # stats cols AL-AS
-GREY_ROW  = "F2F3F4"   # inactive team rows
-INACTIVE  = "D5D8DC"   # inactive text
+GOLD_TXT  = "FFD700"
+DARK_TXT  = "212121"
+GREY_TXT  = "9E9E9E"
+RANK_TXT  = "BF360C"  # 深オレンジ: 順位数字
+
+THIN_G = Side(style="thin",   color="BDBDBD")
+MED_N  = Side(style="medium", color="102A43")
 
 ws_r = wb["リーグ勝敗表"]
 
-# Row 1: Title — dark navy bg, gold bold text
+# ─── タイトル行 (row 1) ─────────────────
 c = ws_r.cell(1, 1)
-c.fill = mk_fill(NAVY)
-c.font = Font(name="メイリオ", size=18, bold=True, color=GOLD)
-c.alignment = ALIGN_C
-ws_r.row_dimensions[1].height = 32
+c.fill = sf(TITLE_BG)
+c.font = Font(name="メイリオ", size=20, bold=True, color=GOLD_TXT)
+c.alignment = AC
+ws_r.row_dimensions[1].height = 36
 
-# Rows 2-3: dark navy spacer band
+# ─── 細いスペーサー (rows 2-3) ───────────
 for r in (2, 3):
+    ws_r.row_dimensions[r].height = 4
     for col in range(1, 46):
         cell = ws_r.cell(r, col)
         if isinstance(cell, MergedCell):
             continue
-        cell.fill = mk_fill(NAVY)
-ws_r.row_dimensions[2].height = 6
-ws_r.row_dimensions[3].height = 6
+        cell.fill = sf(TITLE_BG)
 
-# Rows 4-5: deep blue column headers
-for r in (4, 5):
-    for col in range(1, 46):
-        cell = ws_r.cell(r, col)
-        if isinstance(cell, MergedCell):
-            continue
-        cell.fill = mk_fill(BLUE_H)
-        cell.font = mk_font(size=11, bold=True, color=WHITE)
-        cell.alignment = ALIGN_C
+# ─── ヘッダー行 4 (対戦相手番号) ─────────
+for col in range(1, 46):
+    cell = ws_r.cell(4, col)
+    if isinstance(cell, MergedCell):
+        continue
+    cell.fill = sf(HDR_BG)
+    cell.font = mf(size=11, bold=True, color=WHITE)
+    cell.alignment = AC
 
-# Active team rows 6-17 (teams 1-6, 2 rows each)
+# ─── ヘッダー行 5 (チーム名・集計ラベル) ──
+for col in range(1, 46):
+    cell = ws_r.cell(5, col)
+    if isinstance(cell, MergedCell):
+        continue
+    if col >= 38:
+        cell.fill = sf(HDR_BG2)
+        cell.font = mf(size=12, bold=True, color=WHITE)
+    elif col == 45:
+        cell.fill = sf(HDR_BG2)
+        cell.font = mf(size=12, bold=True, color=GOLD_TXT)
+    else:
+        cell.fill = sf(HDR_BG)
+        cell.font = mf(size=11, bold=True, color=WHITE)
+    cell.alignment = AC
+
+# ─── データ行 (rows 6-17: 6チーム×2行) ───
 for team_idx in range(6):
-    r1 = 6 + team_idx * 2  # win/loss row
-    r2 = r1 + 1             # score row
-    bg1, bg2 = (ROW_A, ROW_A2) if team_idx % 2 == 0 else (ROW_B, ROW_B2)
+    r_wl = 6 + team_idx * 2
+    r_sc = r_wl + 1
+    is_even = (team_idx % 2 == 1)
+    team_bg = TEAM_EVEN if is_even else TEAM_ODD
+    wl_bg   = WL_EVEN   if is_even else WL_ODD
+    sc_bg   = SC_EVEN   if is_even else SC_ODD
 
-    for r, bg in [(r1, bg1), (r2, bg2)]:
+    for r, grid_bg in [(r_wl, wl_bg), (r_sc, sc_bg)]:
         for col in range(1, 46):
             cell = ws_r.cell(r, col)
             if isinstance(cell, MergedCell):
                 continue
             if col <= 4:
-                cell.fill = mk_fill(BLUE_T)
-                cell.font = mk_font(size=10, bold=True, color=WHITE)
-            elif 38 <= col <= 45:
-                cell.fill = mk_fill(STATS_BG)
-                cell.font = mk_font(size=10, bold=(col == 41), color="1A252F")
+                cell.fill = sf(team_bg)
+                cell.font = mf(size=10, bold=True, color=WHITE)
+            elif col == 45:
+                cell.fill = sf(RANK_BG)
+                cell.font = mf(size=16, bold=True, color=RANK_TXT)
+            elif col >= 38:
+                cell.fill = sf(STATS_BG)
+                cell.font = mf(size=10, bold=(col == 41), color=DARK_TXT)
             else:
-                cell.fill = mk_fill(bg)
-                cell.font = mk_font(size=10, color="1A252F")
-            cell.alignment = ALIGN_C
+                cell.fill = sf(grid_bg)
+                cell.font = mf(size=10, color=DARK_TXT)
+            cell.alignment = AC
 
-# Inactive rows 18-27: light grey
+# ─── 非アクティブ行 (rows 18-27) ──────────
 for r in range(18, 28):
     for col in range(1, 46):
         cell = ws_r.cell(r, col)
         if isinstance(cell, MergedCell):
             continue
-        cell.fill = mk_fill(GREY_ROW)
-        cell.font = mk_font(size=9, color=INACTIVE)
-        cell.alignment = ALIGN_C
+        cell.fill = sf(INACTIVE)
+        cell.font = mf(size=9, color=GREY_TXT)
+        cell.alignment = AC
 
-# ── 罫線を一括で統一適用 ──────────────────────────
-# ルール:
-#   - 全セル(rows 4-27, cols 1-45): 細線 (gray)
-#   - 外枠 / ヘッダー下 / チームペア区切り / 統計列左: 太線 (navy)
-
-THIN = Side(style="thin",   color="B2BABB")
-MED  = Side(style="medium", color="0D1B2A")
-
-PAIR_BOTTOMS = {6 + i * 2 + 1 for i in range(6)}  # {7,9,11,13,15,17}
-HEADER_ROW = 5
-STATS_COL  = 38
-LAST_ROW   = 27
-LAST_COL   = 45
+# ─── 罫線: 全セル一括 (rows 4-27) ─────────
+# ゾーン境界: col 1 (左端), col 5 (対戦グリッド開始=E),
+#             col 38 (集計開始=AL), col 45 (順位=AS), col 45 (右端)
+ZONE_LEFT_COLS = {1, 5, 38, 45}
+PAIR_BOTTOMS   = {6 + i * 2 + 1 for i in range(6)}  # {7,9,11,13,15,17}
 
 for r in range(4, 28):
     for col in range(1, 46):
         cell = ws_r.cell(r, col)
         if isinstance(cell, MergedCell):
             continue
-        left   = MED if (col == 1 or col == STATS_COL) else THIN
-        right  = MED if col == LAST_COL else THIN
-        top    = MED if r == 4 else THIN
-        bottom = MED if (r == HEADER_ROW or r == LAST_ROW or r in PAIR_BOTTOMS) else THIN
+        left   = MED_N if col in ZONE_LEFT_COLS  else THIN_G
+        right  = MED_N if col == 45              else THIN_G
+        top    = MED_N if r == 4                 else THIN_G
+        bottom = MED_N if (r == 5 or r == 27 or r in PAIR_BOTTOMS) else THIN_G
         cell.border = Border(left=left, right=right, top=top, bottom=bottom)
 
 wb.save(DST)
