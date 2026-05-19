@@ -33,6 +33,9 @@ class PromptParser:
             # Fallback: simple regex extraction without API
             return self._regex_fallback(chat_text)
 
+        if not chat_text.strip():
+            return self._regex_fallback(chat_text)
+
         client = anthropic.AsyncAnthropic(api_key=key)
         message = await client.messages.create(
             model="claude-haiku-4-5-20251001",
