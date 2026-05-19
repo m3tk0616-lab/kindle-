@@ -48,7 +48,7 @@ class OcrEngine:
                 }],
             }],
         )
-        return msg.content[0].text.strip()
+        return msg.content[0].text.strip() if msg.content else ""
 
     def _tesseract_ocr(self, image_path: str) -> str:
         try:
