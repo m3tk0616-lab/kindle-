@@ -41,7 +41,7 @@ class VideoDownloader:
         ttk.Label(settings_frame, text="形式:").grid(row=0, column=2, padx=5, pady=5, sticky="w")
         self.format_var = tk.StringVar(value="MP4")
         format_cb = ttk.Combobox(settings_frame, textvariable=self.format_var, width=8, state="readonly")
-        format_cb["values"] = ["MP4", "MKV", "MP3", "M4A"]
+        format_cb["values"] = ["MP4", "MKV", "MP3", "M4A", "日産ナビ用(MP4)"]
         format_cb.grid(row=0, column=3, padx=5, pady=5)
 
         # ファイル名テンプレート
@@ -110,6 +110,14 @@ class VideoDownloader:
 
         if quality == "音声のみ(MP3)" or fmt == "MP3":
             format_arg = "-x --audio-format mp3"
+        elif fmt == "日産ナビ用(MP4)":
+            # 日産キックス純正ナビ対応: H.264 Baseline Profile, AAC, MP4コンテナ
+            format_arg = (
+                "-f bestvideo[height<=480][ext=mp4]+bestaudio[ext=m4a]/best[height<=480] "
+                "--merge-output-format mp4 "
+                "--postprocessor-args \"-vcodec libx264 -profile:v baseline -level 3.0 "
+                "-acodec aac -ar 44100 -b:a 128k -movflags +faststart\""
+            )
         elif quality == "最高画質":
             format_arg = "-f bestvideo+bestaudio/best --merge-output-format mp4"
         else:
