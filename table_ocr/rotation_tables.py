@@ -330,7 +330,15 @@ def to_markdown(doc: dict) -> str:
 
 
 def table_html(doc: dict, review: bool) -> str:
+    """任意キー（JSON を手で直すとき用）:
+       table.header_rows / header_cols … 見出し扱いにする先頭の行数・列数（既定 1）
+       table.shade_cols                … 網掛けする列（例: 2班の列）
+       cell.vertical                   … 縦書き（区分ラベルなど）
+       cell.na                         … 斜線セル（該当なし）
+       cell.note                       … 小さな注記（「兼務」など）"""
     t = doc["table"]
+    hr, hc = t.get("header_rows", 1), t.get("header_cols", 1)
+    shade = set(t.get("shade_cols", []))
     by_pos = {(c["row"], c["col"]): c for c in t["cells"]}
     covered = set()
     for c in t["cells"]:
@@ -346,30 +354,48 @@ def table_html(doc: dict, review: bool) -> str:
             if (r, k) in covered:
                 continue
             c = by_pos.get((r, k), {"text": "", "rowspan": 1, "colspan": 1, "conf": 100})
-            tag = "th" if r == 0 or k == 0 else "td"
-            attrs = ""
-            if c["rowspan"] > 1:
+            tag = "th" if r < hr or k < hc else "td"
+            attrs, cls = "", []
+            if c.get("rowspan", 1) > 1:
                 attrs += f' rowspan="{c["rowspan"]}"'
-            if c["colspan"] > 1:
+            if c.get("colspan", 1) > 1:
                 attrs += f' colspan="{c["colspan"]}"'
-            if review and c["text"] and c["conf"] < 70:
-                attrs += f' class="low" title="信頼度 {c["conf"]}"'
-            tds.append(f"<{tag}{attrs}>{html.escape(c['text']).replace(chr(10), '<br>')}</{tag}>")
+            if k in shade and c.get("colspan", 1) == 1:
+                cls.append("shade")
+            if c.get("vertical"):
+                cls.append("vert")
+            if c.get("na"):
+                cls.append("na")
+            if review and c["text"] and c.get("conf", 100) < 70:
+                cls.append("low")
+                attrs += f' title="信頼度 {c["conf"]}"'
+            if cls:
+                attrs += f' class="{" ".join(cls)}"'
+            body = html.escape(c["text"]).replace(chr(10), "<br>")
+            if c.get("note"):
+                body += f'<span class="note">{html.escape(c["note"])}</span>'
+            tds.append(f"<{tag}{attrs}>{body}</{tag}>")
         rows.append("<tr>" + "".join(tds) + "</tr>")
     return f'<table><colgroup>{cols}</colgroup>{"".join(rows)}</table>'
 
 
 def build_html(docs: list[dict], review: bool = False) -> str:
-    pages = []
+    pages, orients = [], []
     for d in docs:
-        orient = "landscape" if d["table"]["cols"] >= 10 and d["table"]["cols"] > d["table"]["rows"] else "portrait"
+        orient = d.get("orientation") or ("landscape" if d["table"]["cols"] >= 10 and d["table"]["cols"] > d["table"]["rows"] else "portrait")
         # 行・列が少ない表は大きく、多い表は小さく（はみ出す場合は下の JS がさらに縮小）
         fs = max(8.0, min(14.0, 110 / d["table"]["cols"], 260 / max(1, d["table"]["rows"])))
+        fs = d.get("font_pt", fs)
+        orients.append(orient)
+        meta = "".join(f"<p>{html.escape(x)}</p>" for x in d.get("subtitle", []))
+        meta = f'<div class="meta">{meta}</div>' if meta else ""
         pages.append(f'<section class="page {orient}" style="font-size:{fs:.1f}pt"><div class="fit"><h1>{html.escape(d["title"])}</h1>'
-                     f'{table_html(d, review)}</div></section>')
+                     f'{meta}{table_html(d, review)}</div></section>')
     return f"""<!doctype html>
 <html lang="ja"><head><meta charset="utf-8"><title>ローテーション表</title>
 <style>
+  /* 既定ページ幅が狭いと Chromium が全体を縮小してしまうため、最初の表の向きに合わせる */
+  @page {{ size: A4 {orients[0] if orients else "portrait"}; margin: 12mm; }}
   @page portrait {{ size: A4 portrait; margin: 12mm; }}
   @page landscape {{ size: A4 landscape; margin: 12mm; }}
   html, body {{ margin: 0; background: #fff; color: #111; font-family: {FONT_STACK}; }}
@@ -384,7 +410,13 @@ def build_html(docs: list[dict], review: bool = False) -> str:
   th, td {{ border: 0.8px solid #555; padding: 0.6em 0.4em; text-align: center; vertical-align: middle;
            word-break: break-all; line-height: 1.35; }}
   th {{ background: #e8eef6; font-weight: 700; }}
-  tr:nth-child(even) td {{ background: #fafbfd; }}
+  .meta {{ display: flex; flex-wrap: wrap; gap: 0 6mm; margin: -2mm 0 3mm; font-size: 9pt; color: #333; }}
+  .meta p {{ margin: 0; }}
+  td.shade {{ background: #e3e9f3; }}
+  th.shade {{ background: #c9d5e8; }}
+  th.vert {{ writing-mode: vertical-rl; text-orientation: upright; letter-spacing: 0.15em; padding: 0.3em 0; }}
+  td.na {{ background: linear-gradient(to top right, transparent calc(50% - 0.5px), #555 50%, transparent calc(50% + 0.5px)); }}
+  .note {{ display: block; font-size: 0.75em; color: #444; margin-top: 0.15em; }}
   td.low, th.low {{ background: #fff3b0 !important; outline: 1px dashed #c90; }}
 </style></head><body>
 {''.join(pages)}

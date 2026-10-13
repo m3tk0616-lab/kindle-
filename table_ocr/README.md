@@ -49,3 +49,13 @@ python rotation_tables.py --from-json output/ -o output/rotation_tables.pdf
 
 手書き文字は Tesseract では誤読が多くなります。印刷文字・表構造はおおむね自動で取れますが、
 人名などの手書き部分は `review.html` で確認し JSON を修正してから `--from-json` で出力してください。
+
+## JSON の任意キー（手修正時に使えるレイアウト指定）
+
+| キー | 内容 |
+|---|---|
+| `title` / `subtitle`（配列） | ページ見出し・その下の補足行 |
+| `orientation` / `font_pt` | `portrait`/`landscape` の固定、文字サイズ（pt） |
+| `table.header_rows` / `table.header_cols` | 見出し扱いにする先頭の行数・列数 |
+| `table.shade_cols` | 網掛けする列番号（例: 2班の列） |
+| セルの `vertical` / `na` / `note` | 縦書き / 斜線（該当なし） / 小さな注記（「兼務」など） |
